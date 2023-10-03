@@ -71,7 +71,7 @@
 		<UI xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" proxybindingid="5001">
 			<DeviceIcon>device</DeviceIcon>
 			<NowPlaying>
-				<ActionIds>Shuffle Repeat</ActionIds>
+				<ActionIds>Shuffle Repeat RepeatOne</ActionIds>
 				<List>
 					<ItemDefaultActionProperty>default_action</ItemDefaultActionProperty>
 					<ItemActionIdsProperty>actions_list</ItemActionIdsProperty>
@@ -115,7 +115,7 @@
 				</Action>
 				<Action>
 					<Id>Repeat</Id>
-					<Name>Turn Repeat On</Name>
+					<Name>Turn Repeat-All On</Name>
 					<Command>
 						<Name>ToggleRepeat</Name>
 						<Type>PROTOCOL</Type>
@@ -131,7 +131,32 @@
 						<Filter>
 							<Type>Change</Type>
 							<Property>repeatmode</Property>
-							<Name>Turn Repeat Off</Name>
+							<Name>Turn Repeat-All Off</Name>
+							<ValidValues>
+								<Value>true</Value>
+							</ValidValues>
+						</Filter>
+					</Filters>
+				</Action>
+				<Action>
+					<Id>RepeatOne</Id>
+					<Name>Turn Repeat-One On</Name>
+					<Command>
+						<Name>ToggleRepeatOne</Name>
+						<Type>PROTOCOL</Type>
+					</Command>
+					<Filters>
+						<Filter>
+							<Type>Disable</Type>
+							<Property>can_repeat_one</Property>
+							<ValidValues>
+								<Value>false</Value>
+							</ValidValues>
+						</Filter>
+						<Filter>
+							<Type>Change</Type>
+							<Property>repeatonemode</Property>
+							<Name>Turn Repeat-One Off</Name>
 							<ValidValues>
 								<Value>true</Value>
 							</ValidValues>
@@ -213,18 +238,15 @@
 		<connection proxybindingid="5001">
 			<id>7000</id>
 			<facing>6</facing>
-			<connectionname>AUDIO OUT End-Point</connectionname>
+			<connectionname>AUDIO Room End-Point</connectionname>
 			<type>7</type>
 			<consumer>False</consumer>
-			<audiosource>False</audiosource>
+			<audiosource>True</audiosource>
 			<videosource>False</videosource>
-			<linelevel>False</linelevel>
+			<linelevel>True</linelevel>
 			<classes>
 				<class>
 					<classname>AUDIO_SELECTION</classname>
-				</class>
-				<class>
-					<classname>AUDIO_VOLUME</classname>
 				</class>
 			</classes>
 		</connection>

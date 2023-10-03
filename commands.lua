@@ -14,7 +14,11 @@ LAST_STATE = ""
 LAST_MEDIA_TITLE = ""
 LAST_FILE_PATH = ""
 LAST_FILE_NAME = ""
+LAST_VOLUME_LEVEL = 0
 HA_URL = ""
+SHUFFLE = false
+REPEAT = false
+REPEAT_ONE = false
 
 function DRV.OnDriverLateInit(init)
     math.randomseed(os.time())
@@ -22,13 +26,18 @@ function DRV.OnDriverLateInit(init)
 end
 
 function RFP.DEVICE_SELECTED(idBinding, strCommand, tParams)
+    MediaPlayerServiceCall("turn_on", {})
     UpdateMediaInfo()
     UpdateProgress()
     UpdateDashboard()
 end
 
 function RFP.DEVICE_DESELECTED(idBinding, strCommand, tParams)
-    MediaPlayerServiceCall("turn_off", {})
+    if MEDIA_STATUS.STATE == "on" then
+        MediaPlayerServiceCall("turn_off", {})
+    else
+        MediaPlayerServiceCall("media_stop", {})
+    end
     UpdateMediaInfo()
     UpdateProgress()
     UpdateDashboard()
@@ -45,14 +54,38 @@ function RFP.GetQueue(idBinding, strCommand, tParams)
     UpdateProgress()
 end
 
+function RFP.ToggleRepeatOne(idBinding, strCommand, tParams)
+    REPEAT_ONE = not (REPEAT_ONE)
+    local params = {}
+
+    if REPEAT_ONE then
+        REPEAT = false
+        params["repeat"] = "one"
+    else
+        params["repeat"] = "off"
+    end
+
+    MediaPlayerServiceCall("repeat_set", params)
+end
+
 function RFP.ToggleRepeat(idBinding, strCommand, tParams)
     REPEAT = not (REPEAT)
-    UpdateQueue()
+    local params = {}
+
+    if REPEAT then
+        REPEAT_ONE = false
+        params["repeat"] = "all"
+    else
+        params["repeat"] = "off"
+    end
+
+    MediaPlayerServiceCall("repeat_set", params)
 end
 
 function RFP.ToggleShuffle(idBinding, strCommand, tParams)
     SHUFFLE = not (SHUFFLE)
-    UpdateQueue()
+
+    MediaPlayerServiceCall("shuffle_set", { shuffle = SHUFFLE })
 end
 
 function RFP.PLAY(idBinding, strCommand, tParams)
@@ -64,7 +97,6 @@ function RFP.PAUSE(idBinding, strCommand, tParams)
 end
 
 function RFP.STOP(idBinding, strCommand, tParams)
-    UpdateDashboard()
     MediaPlayerServiceCall("media_stop", {})
 end
 
@@ -98,6 +130,7 @@ function RFP.GET_VOLUME_LEVEL(idBinding, strCommand, tParams)
 end
 
 function RFP.GET_HAS_DISCRETE_VOLUME(idBinding, strCommand, tParams)
+    print("-- DISCRETE VOLUME --? " .. HAS_DISCRETE_VOLUME)
     return HAS_DISCRETE_VOLUME
 end
 
@@ -213,8 +246,10 @@ function UpdateQueue()
     local tags = {
         can_shuffle = true,
         can_repeat = true,
+        can_repeat_one = true,
         shufflemode = (SHUFFLE == true),
         repeatmode = (REPEAT == true),
+        repeatonemode = (REPEAT_ONE == true),
     }
 
     local queueInfo = {
@@ -264,7 +299,6 @@ function Parse(data)
         MEDIA_STATUS.STATE = state
 
         if LAST_STATE ~= state then
-            print("-- STATE CHANGE -- from " .. LAST_STATE .. " to " .. state)
             LAST_STATE = state
             MediaStateChanged()
         end
@@ -276,14 +310,27 @@ function Parse(data)
 
     local selectedAttribute = attributes["volume_level"]
     if selectedAttribute ~= nil then
-        local volumeLevel = tonumber(selectedAttribute) * 100
-        VOLUME_LEVEL = volumeLevel
+        VOLUME_LEVEL = tonumber(selectedAttribute) * 100
 
-        HAS_DISCRETE_VOLUME = true
+        if HAS_DISCRETE_VOLUME ~= true then
+            HAS_DISCRETE_VOLUME = true
 
-        C4:SendToProxy(5001, 'VOLUME_LEVEL_CHANGED', { LEVEL = volumeLevel, OUTPUT = 7000 })
+            C4:SendToProxy(7000, 'CAPABILITIES_CHANGED',
+                { NAME = 'has_discrete_volume_control', VALUE = HAS_DISCRETE_VOLUME }, 'NOTIFY')
+        end
+
+
+        if LAST_VOLUME_LEVEL ~= VOLUME_LEVEL then
+            LAST_VOLUME_LEVEL = VOLUME_LEVEL
+            C4:SendToProxy(5001, 'VOLUME_LEVEL_CHANGED', { LEVEL = VOLUME_LEVEL, OUTPUT = 7000 })
+        end
     else
-        HAS_DISCRETE_VOLUME = false
+        if HAS_DISCRETE_VOLUME then
+            HAS_DISCRETE_VOLUME = false
+
+            C4:SendToProxy(7000, 'CAPABILITIES_CHANGED',
+                { NAME = 'has_discrete_volume_control', VALUE = HAS_DISCRETE_VOLUME }, 'NOTIFY')
+        end
     end
 
     selectedAttribute = attributes["media_duration"]
@@ -323,28 +370,18 @@ function Parse(data)
 
     selectedAttribute = attributes["shuffle"]
     if selectedAttribute ~= nil then
-        local shuffleMode = ""
-        if selectedAttribute == "false" then
-            shuffleMode = "Off"
-        elseif selectedAttribute == "true" then
-            shuffleMode = "On"
-        end
-
-        C4:SendToProxy(5001, 'SHUFFLE_CHANGED', { SHUFFLE_MODE = shuffleMode })
+        SHUFFLE = selectedAttribute == true
+    else
+        SHUFFLE = false
     end
 
     selectedAttribute = attributes["repeat"]
     if selectedAttribute ~= nil then
-        local repeatMode = ""
-        if selectedAttribute == "off" then
-            repeatMode = "Off"
-        elseif selectedAttribute == "one" then
-            repeatMode = "One"
-        elseif selectedAttribute == "all" then
-            repeatMode = "All"
-        end
-
-        C4:SendToProxy(5001, 'REPEAT_CHANGED', { REPEAT_MODE = repeatMode })
+        REPEAT_ONE = selectedAttribute == "one"
+        REPEAT = selectedAttribute == "all"
+    else
+        REPEAT = false
+        REPEAT_ONE = false
     end
 
     selectedAttribute = attributes["entity_picture"]
@@ -365,13 +402,14 @@ function Parse(data)
     end
 
     UpdateMediaInfo()
+    UpdateQueue()
 end
 
 function MediaStateChanged()
-    if MEDIA_STATUS.STATE == "playing" or MEDIA_STATUS.STATE == "paused" then
-        C4:SendToDevice(C4:RoomGetId(), "SELECT_AUDIO_DEVICE", { deviceid = C4:GetProxyDevices() })
-    else
+    if MEDIA_STATUS.STATE == "idle" or MEDIA_STATUS.STATE == "standby" or MEDIA_STATUS.STATE == "off" then
         C4:SendToDevice(C4:RoomGetId(), "ROOM_OFF", { deviceid = C4:GetProxyDevices() })
+    else
+        C4:SendToDevice(C4:RoomGetId(), "SELECT_AUDIO_DEVICE", { deviceid = C4:GetProxyDevices() })
     end
 end
 
@@ -487,8 +525,6 @@ function ConvertTime(data, incHours)
 end
 
 function GetImageFromURL(url)
-    print("-- GET IMG FROM URL -- " .. url)
-
     C4:FileDelete("MEDIA", LAST_FILE_PATH)
 
     local randomName = tostring(math.random(0, 1000))
