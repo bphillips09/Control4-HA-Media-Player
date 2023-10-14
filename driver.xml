@@ -67,6 +67,7 @@
 		<hide_in_media>True</hide_in_media>
 		<digital_audio_support>False</digital_audio_support>
 		<can_scan_media>False</can_scan_media>
+		<list_nowplaying_non_c4>True</list_nowplaying_non_c4>
 		<ui_selects_device>True</ui_selects_device>
 		<UI xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" proxybindingid="5001">
 			<DeviceIcon>device</DeviceIcon>
