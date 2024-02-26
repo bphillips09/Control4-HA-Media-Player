@@ -5,8 +5,8 @@
 	<name>HA Media Player</name>
 	<model>HA Media Player</model>
 	<created>09/10/2023 12:00</created>
-	<modified>10/22/2023 12:00</modified>
-	<version>102</version>
+	<modified>02/09/2024 12:00</modified>
+	<version>103</version>
 	<control>lua_gen</control>
 	<controlmethod>IP</controlmethod>
 	<driver>DriverWorks</driver>
@@ -45,7 +45,7 @@
 	</proxies>
 	<capabilities>
 		<audio_consumer_count>2</audio_consumer_count>
-		<audio_provider_count>1</audio_provider_count>
+		<audio_provider_count>3</audio_provider_count>
 		<has_discrete_volume_control>True</has_discrete_volume_control>
 		<has_up_down_volume_control>True</has_up_down_volume_control>
 		<has_discrete_mute_control>True</has_discrete_mute_control>
@@ -221,6 +221,36 @@
 				<class>
 					<classname>HA_DEVICE</classname>
 					<autobind>True</autobind>
+				</class>
+			</classes>
+		</connection>
+		<connection proxybindingid="5001">
+			<id>2001</id>
+			<type>5</type>
+			<connectionname>AV Out</connectionname>
+			<consumer>False</consumer>
+			<linelevel>True</linelevel>
+			<classes>
+				<class>
+					<classname>HDMI</classname>
+				</class>
+			</classes>
+		</connection>
+		<connection proxybindingid="5001">
+			<id>4001</id>
+			<type>6</type>
+			<connectionname>AV Out</connectionname>
+			<consumer>False</consumer>
+			<linelevel>True</linelevel>
+			<classes>
+				<class>
+					<classname>STEREO</classname>
+				</class>
+				<class>
+					<classname>DIGITAL_COAX</classname>
+				</class>
+				<class>
+					<classname>DIGITAL_OPTICAL</classname>
 				</class>
 			</classes>
 		</connection>
