@@ -20,6 +20,13 @@ SHUFFLE = false
 REPEAT = false
 REPEAT_ONE = false
 
+function DRV.OnDriverInit(init)
+    C4:AddVariable("MEDIA_TITLE", "", "STRING")
+    C4:AddVariable("MEDIA_ARTIST", "", "STRING")
+    C4:AddVariable("MEDIA_ALBUM", "", "STRING")
+    C4:AddVariable("MEDIA_APP_NAME", "", "STRING")
+end
+
 function DRV.OnDriverLateInit(init)
     math.randomseed(os.time())
     math.random(); math.random(); math.random()
@@ -346,26 +353,27 @@ function Parse(data)
     selectedAttribute = attributes["media_title"]
     if selectedAttribute ~= nil then
         MEDIA_STATUS.TITLE = selectedAttribute
+        C4:SetVariable("MEDIA_TITLE", selectedAttribute)
     end
 
     selectedAttribute = attributes["media_artist"]
     if selectedAttribute ~= nil then
         MEDIA_STATUS.ARTIST = selectedAttribute
+        C4:SetVariable("MEDIA_ARTIST", selectedAttribute)
     end
 
     selectedAttribute = attributes["media_album_name"]
     if selectedAttribute ~= nil then
         MEDIA_STATUS.ALBUM = selectedAttribute
-    end
-
-    selectedAttribute = attributes["media_artist"]
-    if selectedAttribute ~= nil then
-        MEDIA_STATUS.ARTIST = selectedAttribute
+        C4:SetVariable("MEDIA_ALBUM", selectedAttribute)
     end
 
     selectedAttribute = attributes["app_name"]
-    if selectedAttribute ~= nil and MEDIA_STATUS.TITLE == "" or MEDIA_STATUS.TITLE == nil then
-        MEDIA_STATUS.TITLE = selectedAttribute
+    if selectedAttribute ~= nil then
+        if MEDIA_STATUS.TITLE == "" or MEDIA_STATUS.TITLE == nil then
+            MEDIA_STATUS.TITLE = selectedAttribute
+        end
+        C4:SetVariable("MEDIA_APP_NAME", selectedAttribute)
     end
 
     selectedAttribute = attributes["shuffle"]
